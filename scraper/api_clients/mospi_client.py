@@ -238,6 +238,66 @@ class MospiClient:
         payload = self._request_json("/api/cpi/getItemIndex", params)
         return payload if raw else self._data_from_payload(payload, format_name)
 
+    def fetch_wpi_records(
+        self,
+        base_year: Any = "2011-12",
+        year: Any = "",
+        month_code: Any = "",
+        major_group_code: Any = "",
+        group_code: Any = "",
+        sub_group_code: Any = "",
+        sub_sub_group_code: Any = "",
+        item_code: Any = "",
+        format_name: str = "JSON",
+        raw: bool = False,
+        page_size: int = 50000,
+        max_pages: int = 2000,
+    ) -> Any:
+        params: dict[str, Any] = {
+            "base_year": _join_csv(base_year),
+            "Format": format_name,
+            "limit": page_size,
+        }
+
+        if year != "":
+            params["year"] = _join_csv(year)
+        if month_code != "":
+            params["month_code"] = _join_csv(month_code)
+        if major_group_code != "":
+            params["major_group_code"] = _join_csv(major_group_code)
+        if group_code != "":
+            params["group_code"] = _join_csv(group_code)
+        if sub_group_code != "":
+            params["sub_group_code"] = _join_csv(sub_group_code)
+        if sub_sub_group_code != "":
+            params["sub_sub_group_code"] = _join_csv(sub_sub_group_code)
+        if item_code != "":
+            params["item_code"] = _join_csv(item_code)
+
+        payload = self._request_json("/api/wpi/getWpiRecords", params)
+
+        if isinstance(payload, dict):
+            meta = payload.get("meta_data") or {}
+            total_pages = int(meta.get("totalPages", 1) or 1)
+            combined = payload.get("data", []) or []
+            effective_page_size = int(meta.get("recordPerPage") or len(combined) or page_size)
+
+            for page in range(2, min(total_pages, max_pages) + 1):
+                params["page"] = page
+                part = self._request_json("/api/wpi/getWpiRecords", params)
+                if not isinstance(part, dict):
+                    break
+                chunk = part.get("data", []) or []
+                if not chunk:
+                    break
+                combined.extend(chunk)
+                if len(chunk) < effective_page_size:
+                    break
+
+            payload["data"] = combined
+
+        return payload if raw else self._data_from_payload(payload, format_name)
+
     def _fetch_token_from_credentials(self, email: str, password: str) -> str | None:
         """Attempt to obtain an access token using provided credentials.
 

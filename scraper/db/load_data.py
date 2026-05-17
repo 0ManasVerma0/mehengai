@@ -1,6 +1,7 @@
 import pandas as pd
 from db.connection import get_connection
 import logging
+from psycopg2.extras import execute_values
 
 logger = logging.getLogger(__name__)
 
@@ -116,27 +117,38 @@ def load_prices(df: pd.DataFrame) -> dict:
 
     print(f"  Loading {len(df)} price rows into Supabase...")
 
+    rows = []
     for _, row in df.iterrows():
-        try:
-            cur.execute("""
-                INSERT INTO price_tracker
-                  (product, city, price, recorded_at)
-                VALUES (%s,%s,%s,%s)
-                ON CONFLICT (product,city,recorded_at)
-                DO NOTHING
-            """, (
-                row['product'],
-                row['city'],
-                float(row['price']),
-                str(row['recorded_at']),
-            ))
-            ins  += cur.rowcount
-            skip += (1 - cur.rowcount)
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Price insert error: {e}")
+        rows.append((
+            row['product'],
+            row['city'],
+            float(row['price']),
+            row['recorded_at'],
+        ))
 
-    conn.commit()
+    sql = """
+        INSERT INTO price_tracker
+          (product, city, price, recorded_at)
+        VALUES %s
+        ON CONFLICT (product,city,recorded_at)
+        DO NOTHING
+    """
+
+    chunk_size = 1000
+    try:
+        for start in range(0, len(rows), chunk_size):
+            chunk = rows[start:start + chunk_size]
+            execute_values(cur, sql, chunk, page_size=chunk_size)
+            conn.commit()
+            inserted = cur.rowcount if cur.rowcount != -1 else len(chunk)
+            ins += inserted
+            skip += (len(chunk) - inserted)
+            print(f"    loaded {min(start + chunk_size, len(rows))}/{len(rows)} rows")
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Price load error: {e}")
+        raise
+
     cur.close()
     conn.close()
 
