@@ -109,6 +109,41 @@ def add_real_wage(df_wri: pd.DataFrame,
     return df_wri
 
 
+def add_wri_metrics(df_wri: pd.DataFrame) -> pd.DataFrame:
+    """Add QoQ, YoY, and 4-quarter moving average to WRI quarterly data."""
+    if df_wri is None or df_wri.empty:
+        return df_wri
+
+    df = df_wri.copy()
+
+    # Ensure we have quarter and year
+    if 'quarter' not in df.columns:
+        print('  WRI metrics skipped: no quarter column')
+        return df
+
+    df = df.sort_values(['sector','year','quarter'])
+
+    qoq_list, yoy_list, ma_list = [], [], []
+    for _, group in df.groupby(['sector']):
+        g = group.sort_values(['year','quarter'])
+        # treat quarter sequence as period; pct_change(1) = QoQ
+        qoq_list.append(g['wri_value'].pct_change() * 100)
+        # YoY over 4 quarters
+        yoy_list.append(g['wri_value'].pct_change(4) * 100)
+        ma_list.append(g['wri_value'].rolling(4, min_periods=2).mean())
+
+    df['qoq_change'] = pd.concat(qoq_list).round(2)
+    df['yoy_change'] = pd.concat(yoy_list).round(2)
+    df['moving_avg_4q'] = pd.concat(ma_list).round(2)
+
+    # Replace NaN with None
+    for col in ['qoq_change','yoy_change','moving_avg_4q']:
+        df[col] = df[col].where(df[col].notna(), None)
+
+    print(f"  WRI metrics calculated for {len(df)} rows")
+    return df
+
+
 def add_wpi_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """Add MoM, YoY, and moving average to WPI price rows."""
     if df is None or df.empty:
