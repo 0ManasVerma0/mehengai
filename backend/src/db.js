@@ -1,13 +1,20 @@
 import dns from 'node:dns'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
 import dotenv from 'dotenv'
 
-dotenv.config()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
 dns.setDefaultResultOrder('ipv4first')
 
+const connectionString = process.env.DATABASE_POOLER_URL || process.env.DATABASE_URL
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   family: 4,
   ssl: { rejectUnauthorized: false },  // this is required for Supabase
 
