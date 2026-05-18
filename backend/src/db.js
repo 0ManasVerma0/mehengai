@@ -1,10 +1,14 @@
+import dns from 'node:dns'
 import { Pool } from 'pg'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
+dns.setDefaultResultOrder('ipv4first')
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  family: 4,
   ssl: { rejectUnauthorized: false },  // this is required for Supabase
 
   // Connection pool settings
