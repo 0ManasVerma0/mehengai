@@ -3,6 +3,24 @@ import db from '../db.js'
 
 const router = express.Router()
 
+const CPI_CATEGORY_ALIASES = {
+  Food: 'Food and Beverages',
+  'Fuel & Light': 'Fuel and Light',
+  'Clothing & Footwear': 'Clothing and Footwear',
+}
+
+const NON_FOOD_CATEGORIES = [
+  'Clothing and Footwear',
+  'Housing',
+  'Fuel and Light',
+  'Pan, Tobacco and Intoxicants',
+  'Miscellaneous',
+]
+
+function normalizeCpiCategory(category) {
+  return CPI_CATEGORY_ALIASES[category] || category
+}
+
 // ──────────────────────────────────────────────────────────
 // GET /api/cpi
 // Main CPI data with filters
@@ -26,6 +44,52 @@ router.get('/', async (req, res, next) => {
       to
     } = req.query
 
+    const normalizedCategory = normalizeCpiCategory(category)
+
+    if (category === 'Non-Food') {
+      let query = `
+        SELECT
+          month, year,
+          'Non-Food' AS category,
+          segment,
+          state,
+          ROUND(AVG(value)::numeric, 2) AS value,
+          ROUND(AVG(mom_change)::numeric, 2) AS mom_change,
+          ROUND(AVG(yoy_change)::numeric, 2) AS yoy_change,
+          ROUND(AVG(moving_avg)::numeric, 2) AS moving_avg
+        FROM cpi_data
+        WHERE segment = $1
+          AND state = $2
+          AND category = ANY($3::text[])
+      `
+      const params = [segment, state, NON_FOOD_CATEGORIES]
+
+      if (year) {
+        params.push(parseInt(year))
+        query += ` AND year = $${params.length}`
+      }
+
+      if (from) {
+        params.push(parseInt(from))
+        query += ` AND year >= $${params.length}`
+      }
+
+      if (to) {
+        params.push(parseInt(to))
+        query += ` AND year <= $${params.length}`
+      }
+
+      query += ' GROUP BY year, month, segment, state ORDER BY year ASC, month ASC'
+
+      const result = await db.query(query, params)
+
+      return res.json({
+        data: result.rows,
+        count: result.rows.length,
+        params: { segment, category, state }
+      })
+    }
+
     let query = `
       SELECT
         month, year, category, segment, state,
@@ -35,7 +99,7 @@ router.get('/', async (req, res, next) => {
         AND category = $2
         AND state = $3
     `
-    const params = [segment, category, state]
+    const params = [segment, normalizedCategory, state]
 
     if (year) {
       params.push(parseInt(year))
@@ -59,7 +123,7 @@ router.get('/', async (req, res, next) => {
     res.json({
       data: result.rows,
       count: result.rows.length,
-      params: { segment, category, state }
+      params: { segment, category: normalizedCategory, state }
     })
   } catch (err) {
     next(err)
@@ -108,9 +172,9 @@ router.get('/summary', async (req, res, next) => {
       FROM cpi_data
       WHERE state = 'National'
         AND category IN (
-          'General', 'Food', 'Non-Food',
-          'Housing', 'Fuel & Light',
-          'Clothing & Footwear'
+          'General', 'Food and Beverages',
+          'Housing', 'Fuel and Light',
+          'Clothing and Footwear'
         )
       ORDER BY category, segment, year DESC, month DESC
     `)

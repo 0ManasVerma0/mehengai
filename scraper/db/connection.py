@@ -1,10 +1,13 @@
 # db/connection.py
 import psycopg2
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import logging
 
-load_dotenv()
+_repo_root = Path(__file__).resolve().parents[2]
+load_dotenv(_repo_root / "backend" / ".env")
+load_dotenv(_repo_root / ".env")
 
 logger = logging.getLogger(__name__)
 

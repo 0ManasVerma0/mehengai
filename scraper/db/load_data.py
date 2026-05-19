@@ -33,7 +33,11 @@ def load_cpi(df: pd.DataFrame) -> dict:
                    value, mom_change, yoy_change, moving_avg)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (category,segment,state,month,year)
-                DO NOTHING
+                DO UPDATE SET
+                  value = EXCLUDED.value,
+                  mom_change = EXCLUDED.mom_change,
+                  yoy_change = EXCLUDED.yoy_change,
+                  moving_avg = EXCLUDED.moving_avg
             """, (
                 row['category'],
                 row['segment'],

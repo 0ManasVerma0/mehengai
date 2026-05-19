@@ -23,6 +23,25 @@ SEGMENT_MAP = {
     "c":        "combined"
 }
 
+# getCPIData (2024 base) uses division labels; getCPIIndex (2012/2024 series) uses group.
+# Map newer names onto the canonical labels already stored in cpi_data.
+CATEGORY_ALIASES = {
+    "cpi (general)": "General",
+    "food and beverages": "Food and Beverages",
+    "clothing and footwear": "Clothing and Footwear",
+    "housing, water, electricity, gas and other fuels": "Housing",
+    "paan, tobacco and intoxicants": "Pan, Tobacco and Intoxicants",
+}
+
+
+def normalize_category(name: str) -> str:
+    if name is None or (isinstance(name, float) and pd.isna(name)):
+        return ""
+    text = " ".join(str(name).strip().split())
+    if not text or text.lower() in {"nan", "none"}:
+        return ""
+    return CATEGORY_ALIASES.get(text.lower(), text)
+
 
 def clean(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -116,6 +135,9 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
         df['category'] = df['division'].astype(str).str.strip()
     else:
         df['category'] = ''
+
+    df['category'] = df['category'].apply(normalize_category)
+    df = df[df['category'] != '']
 
     # ── Value (MOSPI calls this "index") ───────────────────
     df['value'] = pd.to_numeric(df['index'], errors='coerce')

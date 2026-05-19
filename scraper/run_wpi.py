@@ -53,7 +53,7 @@ def expand_periods(mode: str, years: list[int] | None, months: list[int] | None)
     now = datetime.datetime.now()
 
     if years is None:
-        years = [now.year] if mode == "monthly" else list(range(2010, 2026))
+        years = [now.year] if mode == "monthly" else list(range(2010, now.year + 1))
 
     if months is None:
         months = [now.month] if mode == "monthly" else list(range(1, 13))

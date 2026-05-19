@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* Leaflet map — must import here */
+@import "leaflet/dist/leaflet.css";
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    color: #111111;
+    font-family: "Trebuchet MS", "Arial", sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(255, 196, 61, 0.38), transparent 28%),
+      radial-gradient(circle at right 18%, rgba(72, 209, 204, 0.18), transparent 24%),
+      linear-gradient(180deg, #fff7db 0%, #fffaf2 45%, #f7efe3 100%);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    background-image: radial-gradient(#111111 0.9px, transparent 0.9px);
+    background-size: 18px 18px;
+    mix-blend-mode: multiply;
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+    isolation: isolate;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}

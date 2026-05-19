@@ -8,6 +8,18 @@ Run all commands from the repository root:
 cd C:\Important\programming\mehengai\mehengai
 ```
 
+## CPI category names (2026+)
+
+The `getCPIData` endpoint uses division labels like `CPI (General)` while older
+series data uses `General`. After loading new months, run once if charts still
+stop at Dec 2025:
+
+```powershell
+python scraper/db/normalize_categories.py
+```
+
+`clean_cpi.py` now normalizes these names automatically on future scrapes.
+
 ## CPI commands
 
 Load monthly CPI for the current month:

@@ -13,7 +13,12 @@ const router = express.Router()
 // ──────────────────────────────────────────────────────────
 router.get('/cpi', async (req, res, next) => {
   try {
-    const { year, month } = req.query
+    const {
+      year,
+      month,
+      category = 'General',
+      segment = 'combined'
+    } = req.query
 
     if (!year || !month) {
       return res.status(400).json({
@@ -29,18 +34,19 @@ router.get('/cpi', async (req, res, next) => {
         mom_change,
         yoy_change
       FROM cpi_data
-      WHERE category = 'General'
-        AND segment  = 'combined'
+      WHERE category = $3
+        AND segment  = $4
         AND state   != 'National'
         AND year     = $1
         AND month    = $2
       ORDER BY state ASC
-    `, [parseInt(year), parseInt(month)])
+    `, [parseInt(year), parseInt(month), category, segment])
 
     res.json({
       data:  result.rows,
       count: result.rows.length,
-      period: { year: parseInt(year), month: parseInt(month) }
+      period: { year: parseInt(year), month: parseInt(month) },
+      params: { category, segment }
     })
 
   } catch (err) {
@@ -77,14 +83,16 @@ router.get('/list', async (req, res, next) => {
 // ──────────────────────────────────────────────────────────
 router.get('/available-periods', async (req, res, next) => {
   try {
+    const { category = 'General', segment = 'combined' } = req.query
+
     const result = await db.query(`
       SELECT DISTINCT year, month
       FROM cpi_data
-      WHERE category = 'General'
-        AND segment  = 'combined'
+      WHERE category = $1
+        AND segment  = $2
         AND state   != 'National'
       ORDER BY year DESC, month DESC
-    `)
+    `, [category, segment])
 
     res.json({ data: result.rows })
 
