@@ -7,7 +7,7 @@ const links = [
 
 export default function Navbar() {
 	return (
-		<header className="sticky top-0 z-50 px-4 py-4 sm:px-6">
+		<header className="sticky top-0 z-[1200] px-4 py-4 sm:px-6">
 			<div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 rounded-[28px] border-4 border-black bg-[#fffdf5] px-4 py-3 shadow-[8px_8px_0_#000] sm:px-5">
 				<a href="#overview" className="text-lg font-black uppercase tracking-[0.2em]">
 					Mehengai
