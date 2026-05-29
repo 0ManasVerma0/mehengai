@@ -6,7 +6,6 @@ import compression from 'compression'
 import dotenv from 'dotenv'
 
 import errorHandler from './src/middleware/errorHandler.js'
-import pool from './src/db.js'
 import cpiRouter from './src/routes/cpi.js'
 import wpiRouter from './src/routes/wpi.js'
 import wriRouter from './src/routes/wri.js'
@@ -38,22 +37,13 @@ app.use('/api/states', statesRouter)
 app.use('/api/prices', pricesRouter)
 
 // ── Health check ───────────────────────────────────────────
-// n8n pings this every 5 mins to keep Render awake
-app.get('/health', async (req, res) => {
-  try {
-    await pool.query('SELECT 1')
-    res.json({
-      status:   'ok',
-      database: 'connected',
-      time:     new Date().toISOString()
-    })
-  } catch (err) {
-    res.status(503).json({
-      status:   'degraded',
-      database: 'disconnected',
-      error:    err.message
-    })
-  }
+// Uptime checks should not consume database reads.
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    database: 'not_checked',
+    time: new Date().toISOString()
+  })
 })
 
 // ── API overview ───────────────────────────────────────────

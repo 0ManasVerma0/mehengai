@@ -4,6 +4,25 @@ import db from '../db.js'
 const router = express.Router()
 
 // ──────────────────────────────────────────────────────────
+// GET /api/prices/cities/list
+// All cities available in price tracker
+// ──────────────────────────────────────────────────────────
+router.get('/cities/list', async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      SELECT DISTINCT city
+      FROM price_tracker
+      ORDER BY city ASC
+    `)
+
+    res.json({ data: result.rows.map(r => r.city) })
+
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ──────────────────────────────────────────────────────────
 // GET /api/prices
 // All latest prices across all products and cities
 // ──────────────────────────────────────────────────────────
@@ -22,7 +41,6 @@ router.get('/', async (req, res, next) => {
     next(err)
   }
 })
-
 
 // ──────────────────────────────────────────────────────────
 // GET /api/prices/:product
@@ -73,26 +91,6 @@ router.get('/:product', async (req, res, next) => {
       },
       meta: { product, city, count: result.rows.length }
     })
-
-  } catch (err) {
-    next(err)
-  }
-})
-
-
-// ──────────────────────────────────────────────────────────
-// GET /api/prices/cities/list
-// All cities available in price tracker
-// ──────────────────────────────────────────────────────────
-router.get('/cities/list', async (req, res, next) => {
-  try {
-    const result = await db.query(`
-      SELECT DISTINCT city
-      FROM price_tracker
-      ORDER BY city ASC
-    `)
-
-    res.json({ data: result.rows.map(r => r.city) })
 
   } catch (err) {
     next(err)

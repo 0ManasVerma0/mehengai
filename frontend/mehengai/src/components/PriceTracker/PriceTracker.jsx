@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import {
 Area,
 AreaChart,
@@ -105,11 +105,20 @@ const currentYear = selectedYear || defaultYear
 const defaultMonth = String(selectedYear ? availableMonths[0] || '' : latestPeriod?.month || availableMonths[0] || '')
 const currentMonth = selectedMonth || defaultMonth
 const currentState = selectedState !== 'All states' && states.includes(selectedState) ? selectedState : 'All states'
+const nationalRequestReady = Boolean(currentCategory && currentYear)
+const stateRequestReady = Boolean(currentCategory && currentYear && currentMonth)
+
+useEffect(() => {
+setSelectedMonth('')
+}, [currentCategory, selectedYear])
+
 const { data: nationalRows = [], loading: nationalLoading, error: nationalError } = useInflationData('/api/cpi', {
 category: currentCategory || undefined,
 segment: 'combined',
 state: 'National',
 year: currentYear || undefined,
+}, {
+enabled: nationalRequestReady,
 })
 
 const { data: stateRows = [], loading: stateLoading, error: stateError } = useInflationData('/api/states/cpi', {
@@ -117,6 +126,8 @@ category: currentCategory || undefined,
 segment: 'combined',
 year: currentYear || undefined,
 month: currentMonth || undefined,
+}, {
+enabled: stateRequestReady,
 })
 
 const categoryCount = categories.length
@@ -284,7 +295,7 @@ className={`shrink-0 rounded-full border-4 border-black px-4 py-2 text-sm font-b
 </div>
 
 <div className="mt-4 h-72 rounded-3xl border-4 border-black bg-[#fffdf5] p-3">
-{nationalLoading ? (
+{nationalLoading || !nationalRequestReady ? (
 <EmptyState message="Loading trend..." />
 ) : nationalError ? (
 <EmptyState message={nationalError} />
@@ -322,7 +333,7 @@ className={`shrink-0 rounded-full border-4 border-black px-4 py-2 text-sm font-b
 </div>
 
 <div className="mt-4 h-72 rounded-3xl border-4 border-black bg-[#fffdf5] p-3">
-{stateLoading ? (
+{stateLoading || !stateRequestReady ? (
 <EmptyState message="Loading states..." />
 ) : stateError ? (
 <EmptyState message={stateError} />
