@@ -185,7 +185,7 @@ def run(year: Optional[int] = None, month: Optional[int] = None, base_year: int 
         try:
             series_name = f"Current_Series_{base_year}"
             print(f"Fetching full {series_name} for metrics...")
-            series_payload = c.fetch_cpi_series(series_name, raw=True, page_size=50000, max_pages=2000)
+            series_payload = c.fetch_cpi_series(series_name, raw=True, page_size=200, max_pages=2000)
         except Exception as e:
             print('Series fetch failed (needed for metrics):', e)
             return
@@ -214,7 +214,7 @@ def run(year: Optional[int] = None, month: Optional[int] = None, base_year: int 
         series_name = f"Current_Series_{base_year}"
         print(f"Fetching full {series_name}...")
         try:
-            payload = c.fetch_cpi_series(series_name, raw=True, page_size=50000, max_pages=2000)
+            payload = c.fetch_cpi_series(series_name, raw=True, page_size=200, max_pages=2000)
         except Exception as e:
             print(f'Series fetch failed: {e}')
             # Fallback: try getCPIIndex

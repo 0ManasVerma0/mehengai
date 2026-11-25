@@ -8,6 +8,7 @@ reusable client that the pipeline can call from `main.py`.
 from __future__ import annotations
 
 import os
+import socket
 import ssl
 from typing import Any, Iterable
 
@@ -86,13 +87,22 @@ class MospiClient:
         params: dict[str, Any],
         include_auth: bool = True,
     ) -> dict[str, Any]:
-        response = self.session.get(
-            f"{self.base_url}{endpoint}",
-            params=params,
-            headers=self._headers(include_auth=include_auth),
-            timeout=self.timeout,
-            verify=False,
-        )
+        try:
+            response = self.session.get(
+                f"{self.base_url}{endpoint}",
+                params=params,
+                headers=self._headers(include_auth=include_auth),
+                timeout=self.timeout,
+                verify=False,
+            )
+        except requests.exceptions.ConnectionError as error:
+            cause = error.__cause__ or error
+            if isinstance(cause, socket.gaierror) or "Failed to resolve" in str(error):
+                raise requests.exceptions.ConnectionError(
+                    f"Cannot resolve {self.base_url}. Check internet/VPN/proxy/DNS, "
+                    "then retry the scraper.",
+                ) from error
+            raise
 
         if response.status_code == 401 and include_auth:
             response = self.session.get(
@@ -130,8 +140,8 @@ class MospiClient:
             series = f"Current_Series_{base_year}"
 
         params: dict[str, Any] = {"Series": series, "Format": format_name}
-        # MOSPI honors `limit` for page size.
-        params["limit"] = 50000
+        # MOSPI caps page size at 200.
+        params["limit"] = 200
 
         if year != "":
             params["Year"] = _join_csv(year)
@@ -182,7 +192,7 @@ class MospiClient:
         series: str,
         format_name: str = "JSON",
         raw: bool = False,
-        page_size: int = 50000,
+        page_size: int = 200,
         max_pages: int = 2000,
     ) -> Any:
         print(f"  Fetching series {series} (page size={page_size})")
@@ -250,9 +260,10 @@ class MospiClient:
         item_code: Any = "",
         format_name: str = "JSON",
         raw: bool = False,
-        page_size: int = 50000,
+        page_size: int = 200,
         max_pages: int = 2000,
     ) -> Any:
+        page_size = min(page_size, 200)
         params: dict[str, Any] = {
             "base_year": _join_csv(base_year),
             "Format": format_name,
